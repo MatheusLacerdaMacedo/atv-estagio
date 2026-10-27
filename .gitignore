@@ -1,0 +1,6 @@
+# Arquivos internos do Visual Studio
+.vs/
+
+# Arquivos gerados pelo build
+bin/
+obj/

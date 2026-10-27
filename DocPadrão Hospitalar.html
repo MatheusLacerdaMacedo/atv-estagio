@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SIPAD - Sistema Padronizado</title>
+    
+    <!-- Fonte Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome 6 (Ícones corporativos) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    
+    <!-- Seu arquivo de estilo -->
+    <link rel="stylesheet" href="sipad-estilo.css">
+</head>
+<body>
+<header>
+    <!-- Área da Marca / Logótipo -->
+    <div class="d-flex align-items-center gap-3 mb-4 px-2">
+        <div class="bg-primary text-white rounded d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px; flex-shrink: 0;">
+            <i class="fa-solid fa-file-shield fs-5"></i>
+        </div>
+        <div class="overflow-hidden">
+            <h5 class="mb-0 fw-bold text-white text-truncate">SIPAD</h5>
+            <small class="text-secondary text-truncate d-block" style="font-size: 0.65rem; letter-spacing: 0.5px;">PADRONIZAÇÃO DOCUMENTAL</small>
+        </div>
+    </div>
+    
+    <!-- Links de Navegação -->
+    <nav id="navbar" class="d-flex flex-column gap-1 flex-grow-1"></nav>
+    
+    <!-- Área do Utilizador -->
+    <div id="user-info" class="mt-auto pt-3 w-100"></div>
+</header>
+
+    <main id="app">
+        <!-- Renderização via JS -->
+    </main>
+    <footer>© 2026 SIPAD - Segurança e Qualidade - Todos os direitos reservados.</footer>
+    <div id="toast-container"></div>
+
+<script src="sipad.js"></script>
+</body>
+</html>
