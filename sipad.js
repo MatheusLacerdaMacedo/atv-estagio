@@ -20,7 +20,7 @@ const ROLES_CONTEXT = {
 function getRolesFor(sec) { return ROLES_CONTEXT[sec] || [ {r: "Coordenador(a) / Gestor(a)", m: true}, {r: "Equipe Assistencial/Operacional", m: false} ]; }
 
 // --- ESTADO ---
-let S = { templates: [], records: [], users: [], hosp: "Hospital São Lucas", logo: "", view: "home", sel: null, filter: "Todos" };
+let S = { templates: [], records: [], users: [], hosp: "Hospital São Lucas", logo: "", view: "home", sel: null, selRec: null, filter: "Todos" };
 let VALS = {};
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -50,27 +50,121 @@ const canEdit = (sec) => {
     return u && (u.admin || (u.sector === sec && u.isManager)); 
 };
 
-// ... Omitindo DEFAULT_TEMPLATES e seedTemplates (Mantenha o mesmo código do array DEFAULT_TEMPLATES e da função seedTemplates() originais aqui) ...
+/**
+ * MODELOS PADRÃO (formato de campo: [rótulo, tipo, obrigatório, opções])
+ */
 const DEFAULT_TEMPLATES = [
-    { sector: "TI", code: "TI-FOR-001", title: "Solicitação de Suporte Técnico", owner: "Gestão de TI", printable: true, objective: "Registrar e priorizar chamados de TI.", protocol: "Descreva o problema com detalhes.", fields: [ ["Dados do solicitante", "section"], ["Nome do solicitante", "text", true], ["Setor", "text", true], ["Tipo de chamado", "select", true, "Hardware, Software, Rede, Outros"], ["Descrição do problema", "textarea", true], ["Técnico responsável", "sign"] ] }
-    // Substitua este bloco pelo seu DEFAULT_TEMPLATES completo do código original
+    // ===================== TI =====================
+    { sector: "TI", code: "TI-FOR-001", title: "Solicitação de Suporte Técnico", owner: "Gestão de TI", objective: "Registrar e priorizar chamados de TI.", protocol: "Descreva o problema com detalhes.",
+      fields: [ ["Dados do solicitante", "section"], ["Nome do solicitante", "text", true], ["Setor", "text", true], ["Tipo de chamado", "select", true, "Hardware, Software, Rede, Outros"], ["Descrição do problema", "textarea", true], ["Técnico responsável", "sign"] ] },
+
+    { sector: "TI", code: "TI-FOR-002", title: "Solicitação de Acesso a Sistemas", owner: "Gestão de TI", objective: "Controlar concessão, alteração e revogação de acessos.", protocol: "A solicitação deve ser aprovada pelo gestor do setor antes da liberação.",
+      fields: [ ["Dados do colaborador", "section"], ["Nome completo", "text", true], ["Cargo / Função", "text", true], ["Setor", "text", true], ["Tipo de solicitação", "select", true, "Novo acesso, Alteração de perfil, Revogação"], ["Sistemas solicitados", "table", true, "Sistema, Perfil de acesso, Justificativa"], ["Data de início", "date", true], ["Aprovação", "section"], ["Gestor do setor", "sign", true], ["Responsável de TI", "sign"] ] },
+
+    { sector: "TI", code: "TI-FOR-003", title: "Registro de Incidente de Segurança da Informação", owner: "Gestão de TI", objective: "Documentar incidentes que envolvam dados, sistemas ou equipamentos (LGPD).", protocol: "Notificar imediatamente o gestor de TI em caso de vazamento de dados de pacientes.",
+      fields: [ ["Identificação", "section"], ["Data da ocorrência", "date", true], ["Hora", "time", true], ["Notificante", "text", true], ["Tipo de incidente", "select", true, "Acesso indevido, Perda de equipamento, Malware, Vazamento de dados, Outros"], ["Dados de pacientes envolvidos?", "check", true], ["Descrição do incidente", "textarea", true], ["Ações de contenção", "list"], ["Responsável pela análise", "sign"] ] },
+
+    // ===================== ENFERMAGEM =====================
+    { sector: "Enfermagem", code: "ENF-FOR-001", title: "Evolução de Enfermagem", owner: "Coordenação de Enfermagem", objective: "Registrar a evolução clínica e os cuidados prestados ao paciente.", protocol: "Registrar de forma objetiva, com data, hora e identificação do profissional.",
+      fields: [ ["Identificação do paciente", "section"], ["Nome do paciente", "text", true], ["Prontuário", "text", true], ["Leito", "text"], ["Data", "date", true], ["Hora", "time", true], ["Avaliação", "section"], ["Nível de consciência", "select", true, "Alerta, Sonolento, Torporoso, Comatoso"], ["Sinais vitais", "table", true, "PA, FC, FR, Temp., SpO2"], ["Dor (escala 0-10)", "number"], ["Evolução / Intercorrências", "textarea", true], ["Cuidados realizados", "list"], ["Profissional responsável", "sign", true] ] },
+
+    { sector: "Enfermagem", code: "ENF-FOR-002", title: "Passagem de Plantão", owner: "Coordenação de Enfermagem", objective: "Padronizar a transferência de informações entre turnos (SBAR).", protocol: "Realizar a passagem à beira-leito sempre que possível.",
+      fields: [ ["Dados do plantão", "section"], ["Data", "date", true], ["Turno", "select", true, "Manhã, Tarde, Noite A, Noite B"], ["Unidade", "text", true], ["Pacientes", "section"], ["Resumo por paciente", "table", true, "Leito, Paciente, Situação/Diagnóstico, Pendências"], ["Intercorrências do turno", "textarea"], ["Equipamentos / Materiais com problema", "list"], ["Profissional que passa o plantão", "sign", true], ["Profissional que recebe o plantão", "sign", true] ] },
+
+    { sector: "Enfermagem", code: "ENF-FOR-003", title: "Notificação de Queda de Paciente", owner: "Núcleo de Segurança do Paciente", objective: "Registrar quedas e subsidiar ações preventivas.", protocol: "Notificar em até 24 horas após o evento.",
+      fields: [ ["Dados do paciente", "section"], ["Nome do paciente", "text", true], ["Prontuário", "text", true], ["Idade", "number"], ["Dados do evento", "section"], ["Data do evento", "date", true], ["Hora do evento", "time", true], ["Local da queda", "select", true, "Leito, Banheiro, Corredor, Poltrona, Outro"], ["Risco de queda avaliado previamente?", "check", true], ["Houve dano ao paciente?", "check", true], ["Grau do dano", "select", false, "Nenhum, Leve, Moderado, Grave, Óbito"], ["Descrição do evento", "textarea", true], ["Medidas adotadas", "list"], ["Notificante", "sign", true] ] },
+
+    { sector: "Enfermagem", code: "ENF-FOR-004", title: "Checklist de Administração Segura de Medicamentos", owner: "Coordenação de Enfermagem", objective: "Garantir a conferência dos 9 certos na administração.", protocol: "Conferir todos os itens antes de administrar.",
+      fields: [ ["Paciente", "section"], ["Nome do paciente", "text", true], ["Leito", "text"], ["Medicamento", "text", true], ["Conferência (9 certos)", "section"], ["Paciente certo", "check", true], ["Medicamento certo", "check", true], ["Dose certa", "check", true], ["Via certa", "check", true], ["Hora certa", "check", true], ["Registro certo", "check", true], ["Alergias verificadas", "check", true], ["Observações", "textarea"], ["Profissional", "sign", true] ] },
+
+    // ===================== UTI =====================
+    { sector: "UTI", code: "UTI-FOR-001", title: "Balanço Hídrico", owner: "Coordenação da UTI", objective: "Controlar entradas e saídas de líquidos do paciente crítico.", protocol: "Fechar o balanço a cada 6 e 24 horas.",
+      fields: [ ["Paciente", "section"], ["Nome do paciente", "text", true], ["Leito", "text", true], ["Data", "date", true], ["Peso (kg)", "number"], ["Entradas", "table", true, "Horário, Via/Tipo, Volume (mL)"], ["Saídas", "table", true, "Horário, Tipo (diurese, dreno, etc.), Volume (mL)"], ["Balanço parcial (mL)", "number"], ["Balanço total 24h (mL)", "number"], ["Responsável", "sign", true] ] },
+
+    { sector: "UTI", code: "UTI-FOR-002", title: "Checklist Diário Multiprofissional (FAST HUG)", owner: "Coordenação da UTI", objective: "Revisar diariamente medidas de segurança e prevenção de complicações.", protocol: "Aplicar durante o round multiprofissional.",
+      fields: [ ["Identificação", "section"], ["Paciente", "text", true], ["Leito", "text", true], ["Data", "date", true], ["Itens avaliados", "section"], ["Alimentação (Feeding) adequada", "check", true], ["Analgesia / Sedação revisadas", "check", true], ["Profilaxia de TVP", "check", true], ["Cabeceira elevada 30-45°", "check", true], ["Profilaxia de úlcera de estresse", "check", true], ["Controle glicêmico", "check", true], ["Necessidade de manter dispositivos invasivos", "check", true], ["Metas do dia", "list"], ["Médico(a) responsável", "sign", true] ] },
+
+    // ===================== CENTRO CIRÚRGICO =====================
+    { sector: "Centro Cirúrgico", code: "CC-FOR-001", title: "Checklist de Cirurgia Segura (OMS)", owner: "Coordenação do Bloco", objective: "Reduzir eventos adversos cirúrgicos por meio de verificação em três momentos.", protocol: "Aplicar em voz alta, com toda a equipe presente.",
+      fields: [ ["Identificação", "section"], ["Paciente", "text", true], ["Procedimento", "text", true], ["Sala", "text"], ["Data", "date", true], ["Antes da indução anestésica (Sign In)", "section"], ["Identidade, local e procedimento confirmados", "check", true], ["Consentimento assinado", "check", true], ["Sítio cirúrgico demarcado", "check", true], ["Alergias conhecidas verificadas", "check", true], ["Antes da incisão (Time Out)", "section"], ["Equipe se apresentou e confirmou o procedimento", "check", true], ["Antibiótico profilático administrado", "check", true], ["Imagens essenciais disponíveis", "check"], ["Antes da saída da sala (Sign Out)", "section"], ["Contagem de compressas e instrumentais correta", "check", true], ["Peças cirúrgicas identificadas", "check", true], ["Enfermeiro(a) circulante", "sign", true], ["Cirurgião(ã)", "sign", true] ] },
+
+    { sector: "Centro Cirúrgico", code: "CC-FOR-002", title: "Registro de Contagem de Compressas e Instrumentais", owner: "Coordenação do Bloco", objective: "Prevenir retenção de corpos estranhos.", protocol: "Realizar contagem antes, durante e ao final do procedimento.",
+      fields: [ ["Dados do procedimento", "section"], ["Paciente", "text", true], ["Procedimento", "text", true], ["Data", "date", true], ["Contagem", "section"], ["Itens contados", "table", true, "Item, Contagem inicial, Adicionados, Contagem final"], ["Contagem final confere?", "check", true], ["Conduta em caso de divergência", "textarea"], ["Instrumentador(a)", "sign", true], ["Circulante", "sign", true] ] },
+
+    // ===================== FARMÁCIA =====================
+    { sector: "Farmácia", code: "FAR-FOR-001", title: "Dispensação de Medicamentos Controlados", owner: "Farmacêutico(a) RT", objective: "Registrar a dispensação de medicamentos sujeitos a controle especial (Portaria 344/98).", protocol: "Exigir prescrição/receita válida e conferir identificação do paciente.",
+      fields: [ ["Paciente / Prescrição", "section"], ["Nome do paciente", "text", true], ["Prontuário", "text"], ["Prescritor (nome e CRM)", "text", true], ["Número da receita / notificação", "text", true], ["Medicamentos", "section"], ["Itens dispensados", "table", true, "Medicamento, Lote, Quantidade, Validade"], ["Data da dispensação", "date", true], ["Farmacêutico(a) responsável", "sign", true], ["Profissional que recebeu", "sign", true] ] },
+
+    { sector: "Farmácia", code: "FAR-FOR-002", title: "Controle de Temperatura de Refrigeradores", owner: "Farmacêutico(a) RT", objective: "Garantir a conservação de medicamentos termolábeis (2 a 8 °C).", protocol: "Registrar duas vezes ao dia. Temperaturas fora da faixa devem ser notificadas imediatamente.",
+      fields: [ ["Equipamento", "section"], ["Identificação do refrigerador", "text", true], ["Mês / Ano de referência", "text", true], ["Registros", "section"], ["Leituras diárias", "table", true, "Dia, Hora, Temp. atual (°C), Mín. (°C), Máx. (°C)"], ["Houve desvio de temperatura?", "check", true], ["Ação corretiva adotada", "textarea"], ["Responsável pela verificação", "sign", true] ] },
+
+    // ===================== LABORATÓRIO =====================
+    { sector: "Laboratório", code: "LAB-FOR-001", title: "Controle de Qualidade Interno", owner: "Biomédico(a) RT", objective: "Registrar resultados dos controles internos das análises.", protocol: "Realizar o controle antes de iniciar a rotina e a cada troca de lote de reagente.",
+      fields: [ ["Identificação", "section"], ["Data", "date", true], ["Equipamento / Método", "text", true], ["Analito", "text", true], ["Nível do controle", "select", true, "Normal, Patológico, Alto"], ["Lote do controle", "text", true], ["Resultado obtido", "number", true], ["Faixa aceitável", "text", true], ["Resultado dentro do aceitável?", "check", true], ["Ação corretiva", "textarea"], ["Analista", "sign", true] ] },
+
+    { sector: "Laboratório", code: "LAB-FOR-002", title: "Registro de Não Conformidade de Amostra", owner: "Biomédico(a) RT", objective: "Documentar amostras recusadas ou com problemas pré-analíticos.", protocol: "Comunicar o setor de origem e solicitar nova coleta quando necessário.",
+      fields: [ ["Amostra", "section"], ["Paciente", "text", true], ["Número da amostra", "text", true], ["Setor de origem", "text", true], ["Data / Hora da coleta", "text"], ["Motivo", "select", true, "Hemólise, Volume insuficiente, Identificação incorreta, Coagulada, Tubo inadequado, Outros"], ["Detalhes", "textarea"], ["Setor foi comunicado?", "check", true], ["Nova coleta solicitada?", "check", true], ["Responsável", "sign", true] ] },
+
+    // ===================== RADIOLOGIA =====================
+    { sector: "Radiologia", code: "RAD-FOR-001", title: "Termo de Consentimento para Uso de Contraste", owner: "Médico(a) Radiologista", objective: "Registrar triagem de risco e consentimento para exames com contraste.", protocol: "Realizar a triagem antes da administração do contraste.",
+      fields: [ ["Paciente", "section"], ["Nome do paciente", "text", true], ["Data de nascimento", "date", true], ["Exame", "text", true], ["Triagem de risco", "section"], ["Alergia prévia a contraste?", "check", true], ["Histórico de asma / alergias graves?", "check", true], ["Insuficiência renal?", "check", true], ["Creatinina (mg/dL)", "number"], ["Uso de metformina?", "check", true], ["Possibilidade de gravidez?", "check"], ["Paciente / Responsável", "sign", true], ["Médico(a) responsável", "sign", true] ] },
+
+    { sector: "Radiologia", code: "RAD-FOR-002", title: "Registro Diário de Exames Realizados", owner: "Técnico(a) em Radiologia", objective: "Controlar produção e rastrear exames por equipamento.", protocol: "Preencher ao término de cada turno.",
+      fields: [ ["Dados do turno", "section"], ["Data", "date", true], ["Equipamento", "select", true, "Raio-X Fixo, Raio-X Portátil, Tomografia, Ressonância, Mamografia"], ["Exames", "table", true, "Hora, Paciente, Exame, Dose/Parâmetros, Intercorrência"], ["Total de exames", "number"], ["Técnico(a) responsável", "sign", true] ] },
+
+    // ===================== RECEPÇÃO =====================
+    { sector: "Recepção", code: "REC-FOR-001", title: "Registro de Manifestação do Paciente / Ouvidoria", owner: "Supervisão de Atendimento", objective: "Registrar elogios, sugestões e reclamações.", protocol: "Dar retorno ao paciente em até 5 dias úteis.",
+      fields: [ ["Identificação", "section"], ["Nome (opcional)", "text"], ["Telefone / E-mail para retorno", "text"], ["Data", "date", true], ["Manifestação", "section"], ["Tipo", "select", true, "Elogio, Sugestão, Reclamação, Denúncia"], ["Setor envolvido", "text", true], ["Descrição", "textarea", true], ["Encaminhamento", "textarea"], ["Responsável pelo registro", "sign", true] ] },
+
+    { sector: "Recepção", code: "REC-FOR-002", title: "Controle de Visitantes", owner: "Supervisão de Atendimento", objective: "Registrar entrada e saída de visitantes e acompanhantes.", protocol: "Conferir documento com foto e informar as regras da unidade.",
+      fields: [ ["Data", "date", true], ["Setor / Unidade", "text", true], ["Visitantes", "table", true, "Nome, Documento, Paciente visitado, Leito, Entrada, Saída"], ["Recepcionista responsável", "sign", true] ] },
+
+    // ===================== CCIH =====================
+    { sector: "CCIH", code: "CCIH-FOR-001", title: "Notificação de Infecção Relacionada à Assistência (IRAS)", owner: "Comissão de Controle de Infecção Hospitalar", objective: "Registrar e investigar casos de IRAS para vigilância epidemiológica.", protocol: "Notificar à CCIH em até 24 horas após o diagnóstico.",
+      fields: [ ["Paciente", "section"], ["Nome do paciente", "text", true], ["Prontuário", "text", true], ["Unidade / Leito", "text", true], ["Data de internação", "date", true], ["Infecção", "section"], ["Topografia", "select", true, "Corrente sanguínea (IPCS), Trato urinário (ITU-CVD), Pneumonia (PAV), Sítio cirúrgico (ISC), Outras"], ["Data do diagnóstico", "date", true], ["Dispositivo invasivo em uso", "select", false, "Nenhum, CVC, SVD, Ventilação mecânica, Dreno"], ["Microrganismo isolado", "text"], ["Perfil de resistência", "text"], ["Medidas de controle adotadas", "list"], ["Notificante", "sign", true] ] },
+
+    { sector: "CCIH", code: "CCIH-FOR-002", title: "Auditoria de Higienização das Mãos", owner: "Comissão de Controle de Infecção Hospitalar", objective: "Monitorar a adesão aos 5 momentos de higienização das mãos.", protocol: "Observar sem interferir na rotina e registrar oportunidades e ações realizadas.",
+      fields: [ ["Dados da observação", "section"], ["Data", "date", true], ["Unidade observada", "text", true], ["Observador", "text", true], ["Observações", "table", true, "Categoria profissional, Momento (1 a 5), Higienizou? (Sim/Não), Técnica (álcool/água e sabão)"], ["Total de oportunidades", "number"], ["Total de adesões", "number"], ["Comentários / Feedback ao setor", "textarea"], ["Responsável pela auditoria", "sign", true] ] },
+
+    // ===================== NUTRIÇÃO =====================
+    { sector: "Nutrição", code: "NUT-FOR-001", title: "Triagem Nutricional", owner: "Nutricionista RT", objective: "Identificar risco nutricional nas primeiras 48 horas de internação.", protocol: "Reavaliar semanalmente pacientes em risco.",
+      fields: [ ["Paciente", "section"], ["Nome do paciente", "text", true], ["Leito", "text"], ["Data", "date", true], ["Antropometria", "section"], ["Peso atual (kg)", "number", true], ["Altura (m)", "number", true], ["IMC", "number"], ["Perda de peso não intencional (últimos 3 meses)?", "check", true], ["Ingestão alimentar reduzida?", "check", true], ["Doença grave / Estresse metabólico?", "check", true], ["Classificação de risco", "select", true, "Sem risco, Risco moderado, Alto risco"], ["Conduta nutricional", "textarea"], ["Nutricionista", "sign", true] ] },
+
+    { sector: "Nutrição", code: "NUT-FOR-002", title: "Controle de Temperatura de Refeições", owner: "Nutricionista RT", objective: "Garantir segurança sanitária na distribuição de refeições.", protocol: "Pratos quentes ≥ 60 °C e frios ≤ 10 °C.",
+      fields: [ ["Data", "date", true], ["Refeição", "select", true, "Desjejum, Almoço, Lanche, Jantar, Ceia"], ["Aferições", "table", true, "Preparação, Tipo (quente/frio), Temperatura (°C), Horário"], ["Houve não conformidade?", "check", true], ["Ação corretiva", "textarea"], ["Responsável", "sign", true] ] },
+
+    // ===================== MANUTENÇÃO =====================
+    { sector: "Manutenção", code: "MAN-FOR-001", title: "Ordem de Serviço de Manutenção", owner: "Engenharia Clínica/Predial", objective: "Registrar e acompanhar solicitações de manutenção corretiva.", protocol: "Classificar a urgência conforme impacto assistencial.",
+      fields: [ ["Solicitação", "section"], ["Setor solicitante", "text", true], ["Data da solicitação", "date", true], ["Tipo de serviço", "select", true, "Elétrica, Hidráulica, Climatização, Civil, Equipamento médico, Outros"], ["Prioridade", "select", true, "Baixa, Média, Alta, Emergência"], ["Descrição do problema", "textarea", true], ["Execução", "section"], ["Data de execução", "date"], ["Serviço realizado", "textarea"], ["Materiais utilizados", "table", false, "Item, Quantidade"], ["Técnico executor", "sign"], ["Aceite do solicitante", "sign"] ] },
+
+    { sector: "Manutenção", code: "MAN-FOR-002", title: "Manutenção Preventiva de Equipamento Médico", owner: "Engenharia Clínica/Predial", objective: "Documentar inspeções e calibrações preventivas programadas.", protocol: "Seguir o plano de manutenção do fabricante.",
+      fields: [ ["Equipamento", "section"], ["Descrição / Modelo", "text", true], ["Patrimônio / Nº de série", "text", true], ["Setor", "text", true], ["Intervenção", "section"], ["Data", "date", true], ["Itens verificados", "table", true, "Item, Conforme? (Sim/Não), Observação"], ["Calibração realizada?", "check", true], ["Equipamento liberado para uso?", "check", true], ["Próxima manutenção prevista", "date"], ["Engenheiro(a) / Técnico(a)", "sign", true] ] }
 ];
 
+/**
+ * Semeia os modelos padrão. Adiciona apenas os que ainda não existem (por código),
+ * então pode ser executado novamente após atualizar a lista sem duplicar nada.
+ */
 function seedTemplates() {
+    const SEED_KEY = "sipad_seed_v3"; // nova chave: força a inclusão dos novos modelos
     let done = false;
-    try { done = localStorage.getItem("sipad_seed_v2") === "1"; } catch (e) {}
+    try { done = localStorage.getItem(SEED_KEY) === "1"; } catch (e) {}
     if (done) return;
+
     const today = new Date().toISOString().slice(0, 10);
+    let added = 0;
     DEFAULT_TEMPLATES.forEach(d => {
-        if (S.templates.some(t => t.sector === d.sector)) return;
+        if (S.templates.some(t => t.code === d.code)) return;
         S.templates.push({
             id: uid(), code: d.code, title: d.title, sector: d.sector, version: "1.0",
-            validity: today, owner: d.owner, objective: d.objective, protocol: d.protocol, printable: true,
+            validity: today, owner: d.owner, objective: d.objective, protocol: d.protocol,
+            printable: true, logo: "",
             fields: d.fields.map(([label, type, req, opts]) => createField(label, type, !!req, opts || ""))
         });
+        added++;
     });
-    saveDB();
-    try { localStorage.setItem("sipad_seed_v2", "1"); } catch (e) {}
+    if (added) saveDB();
+    try { localStorage.setItem(SEED_KEY, "1"); } catch (e) {}
 }
 
 // --- INICIALIZAÇÃO ---
@@ -117,7 +211,7 @@ function render() {
     ];
     if (user.admin) menu.push({ id: "config", label: "Configurações", icon: "fa-gear" });
 
-// 1. Menu de navegação principal
+    // 1. Menu de navegação principal
     nav.innerHTML = menu.map(m => `
         <button class="nav-btn ${S.view === m.id || (S.view === 'edit' && m.id === 'lib') || (S.view === 'fill' && m.id === 'lib') ? 'active' : ''}" onclick="S.view='${m.id}'; render()">
             <i class="fa-solid ${m.icon} fa-fw me-3 opacity-75"></i>${esc(m.label)}
@@ -132,7 +226,7 @@ function render() {
             <i class="fa-solid fa-circle-half-stroke fa-fw me-3 opacity-75"></i> Alternar Tema
         </button>`;
     
-    // 3. Área do Utilizador (Rodapé) redesenhada em formato de "Cartão"
+    // 3. Área do Utilizador (Rodapé) em formato de "Cartão"
     const tagPriv = user.admin ? '<span class="badge bg-danger ms-2" style="font-size: 0.65rem;">Admin</span>' : (user.isManager ? '<span class="badge bg-success ms-2" style="font-size: 0.65rem;">Gestor</span>' : '');
     
     uInfo.innerHTML = `
@@ -339,7 +433,7 @@ function createTemplate() {
         id: uid(), code: "COD-001", title: "Novo Documento", sector: getMe().sector, 
         version: "1.0", validity: new Date().toISOString().slice(0,10), 
         owner: getMe().name, objective: "", protocol: "", printable: true, 
-        logo: "", // Nova propriedade
+        logo: "",
         fields: [createField("Campo Exemplo", "text", true)] 
     };
     S.templates.unshift(t); saveDB(); S.sel = t.id; S.view = "edit"; render();
@@ -358,10 +452,6 @@ function viewEdit() {
     </div>
     
     <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-transparent border-bottom-0 pt-4 pb-0">
-            <h5 class="text-primary fw-bold mb-0"><i class="fa-solid fa-1 me-2"></i>Identificação Corporativa</h5>
-        </div>
-        <div class="card shadow-sm border-0 mb-4">
         <div class="card-header bg-transparent border-bottom-0 pt-4 pb-0">
             <h5 class="text-primary fw-bold mb-0"><i class="fa-solid fa-1 me-2"></i>Identificação Corporativa</h5>
         </div>
@@ -386,7 +476,7 @@ function viewEdit() {
                     <input type="text" class="form-control" value="${esc(t.version)}" onchange="updateT('version', this.value)">
                 </div>
                 
-                <!-- Novo Campo: Logótipo do Modelo -->
+                <!-- Logótipo do Modelo -->
                 <div class="col-12 mt-3">
                     <label class="form-label small fw-medium">Logótipo Específico do Modelo <span class="text-muted fw-normal">(Substitui o logótipo global da instituição)</span></label>
                     <div class="d-flex align-items-center gap-3">
@@ -407,7 +497,6 @@ function viewEdit() {
                 </div>
             </div>
         </div>
-    </div>
     </div>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -482,10 +571,7 @@ function moveField(idx, dir) {
 
 const fmtDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v || "") ? v.split("-").reverse().join("/") : (v || "");
 
-// --- IMPRESSÃO / GERAÇÃO (Usa a lógica avançada gerada na resposta anterior) ---
-// (Mantenha aqui as funções renderValueHtml, buildDocumentHtml, addRow, updateDynamicTable e printHtml exatamente como geramos na versão anterior).
-// Como você já tem as funções da resposta anterior, substituí os blocos HTML delas para as classes normais sem emojis.
-
+// --- IMPRESSÃO / GERAÇÃO ---
 function renderValueHtml(f, v, blank = false) {
     const empty = `<div class="doc-field-val doc-empty">—</div>`;
     switch (f.type) {
@@ -581,7 +667,7 @@ function buildDocumentHtml(t, vals, isEdit, blank = false) {
     return html;
 }
 
-// Funções da Tabela (Mantidas)
+// Funções da Tabela dinâmica
 function updateDynamicTable(fieldId) {
     const tbody = document.getElementById(`tbody_${fieldId}`);
     if (!tbody) return;
@@ -603,7 +689,7 @@ window.addRow = addRow;
 function removeRow(btn, fieldId) { btn.closest("tr").remove(); updateDynamicTable(fieldId); }
 window.removeRow = removeRow;
 
-// Lógica segura de Impressão (Mantenha o printHtml da resposta anterior)
+// Lógica segura de Impressão
 function printHtml(bodyHtml, titleStr) {
     const old = document.getElementById("print-frame"); if (old) old.remove();
     const fr = document.createElement("iframe"); fr.id = "print-frame"; fr.setAttribute("aria-hidden", "true"); fr.style.cssText = "position:absolute; width:0; height:0; border:0; top:-9999px;";
@@ -800,8 +886,8 @@ async function addUser() {
 }
 function delUser(id) { if (confirm("Revogar o acesso deste colaborador permanentemente?")) { S.users = S.users.filter(u => u.id !== id); saveDB(); render(); showToast("Acesso revogado."); } }
 
-// Ao carregar a página (Também possibilita instanciar dropdowns do Bootstrap se necessário futuro)
+// Inicialização ao carregar a página
+// (lembre-se de linkar também o bootstrap.bundle.min.js no HTML para os dropdowns funcionarem)
 window.onload = () => {
-    // Garante compatibilidade caso adicione dropdowns interativos depois (recomenda-se linkar o bootstrap.bundle.min.js no HTML também)
     boot();
 };
