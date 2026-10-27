@@ -291,6 +291,23 @@ function viewLogin() {
                     <button class="btn btn-primary w-100 py-2 fw-semibold" onclick="doLogin()">
                         <i class="fa-solid fa-right-to-bracket me-2"></i> Autenticar
                     </button>
+                    <div class="mt-4 pt-3 border-top text-start">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fa-solid fa-flask text-warning me-2"></i>
+                            <span class="small fw-bold text-uppercase text-secondary" style="letter-spacing: .5px;">Acessos de demonstração</span>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary text-start d-flex justify-content-between align-items-center" onclick="fillLogin('admin','admin123')">
+                                <span><i class="fa-solid fa-user-shield me-2 text-danger"></i><strong>Administrador</strong></span>
+                                <code class="small">admin / admin123</code>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary text-start d-flex justify-content-between align-items-center" onclick="fillLogin('coord.enf','enf123')">
+                                <span><i class="fa-solid fa-user-tie me-2 text-success"></i><strong>Gestor (Enfermagem)</strong></span>
+                                <code class="small">coord.enf / enf123</code>
+                            </button>
+                        </div>
+                        <div class="form-text mt-2 mb-0"><i class="fa-solid fa-circle-info me-1"></i>Clique em um acesso para preencher automaticamente.</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -317,6 +334,11 @@ async function doLogin() {
         render(); 
     } 
     else { showToast("Credenciais inválidas", "error"); }
+}
+function fillLogin(user, pass) {
+    document.getElementById("lg_u").value = user;
+    document.getElementById("lg_p").value = pass;
+    document.getElementById("lg_p").focus();
 }
 
 function logout() { 
