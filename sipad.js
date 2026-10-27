@@ -197,6 +197,7 @@ function toggleTheme() {
 
 // --- ROTEAMENTO ---
 function render() {
+    closeMenu();
     const app = document.getElementById("app");
     const nav = document.getElementById("navbar");
     const uInfo = document.getElementById("user-info");
@@ -857,6 +858,9 @@ function viewConfig() {
     </div>`;
 }
 
+function toggleMenu(force) { document.body.classList.toggle("menu-open", force); }
+function closeMenu() { document.body.classList.remove("menu-open"); }
+
 function updateRoleDropdownHTML() {
     const selSec = document.getElementById("nu_s");
     const selRole = document.getElementById("nu_r");
@@ -890,4 +894,6 @@ function delUser(id) { if (confirm("Revogar o acesso deste colaborador permanent
 // (lembre-se de linkar também o bootstrap.bundle.min.js no HTML para os dropdowns funcionarem)
 window.onload = () => {
     boot();
+    document.addEventListener("keydown", e => { if (e.key === "Escape") closeMenu(); });
+    window.addEventListener("resize", () => { if (window.innerWidth >= 992) closeMenu(); });
 };

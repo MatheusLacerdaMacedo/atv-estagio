@@ -3,6 +3,7 @@
    ===================================================================== */
 :root {
   --sb-w: 260px;
+  --topbar-h: 56px;
   --font-family: 'Inter', system-ui, sans-serif;
   --doc-bg: #ffffff;
   --doc-border: #cbd5e1;
@@ -46,8 +47,14 @@ header {
 main { margin-left: var(--sb-w); padding: 2.5rem; min-height: 100vh; }
 .content-wrapper { max-width: 1200px; margin: 0 auto; }
 
+/* Barra superior e fundo escurecido (só aparecem no mobile) */
+.mobile-topbar { display: none; }
+.sb-backdrop { display: none; }
+
 /* Logado fora (Tela de Login) */
-body:has(#user-info:empty) header { display: none; }
+body:has(#user-info:empty) header,
+body:has(#user-info:empty) .mobile-topbar,
+body:has(#user-info:empty) .sb-backdrop { display: none !important; }
 body:has(#user-info:empty) main { margin-left: 0; display: flex; align-items: center; justify-content: center; }
 
 /* DOCUMENTO OFICIAL (Papel Timbrado) */
@@ -105,20 +112,72 @@ body:has(#user-info:empty) main { margin-left: 0; display: flex; align-items: ce
 @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: none; opacity: 1; } }
 .print-only { display: none; }
 
-/* RESPONSIVO */
-@media (max-width: 991px) {
-  header { position: sticky; top: 0; width: 100%; inset: 0 0 auto 0; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 1rem; border-right: 0; border-bottom: 1px solid var(--bs-border-color); }
-  .nav-container { flex-direction: row; flex: 1 1 100%; gap: 0.5rem; overflow-x: auto; }
-  .nav-btn { width: auto; white-space: nowrap; padding: 0.5rem 0.75rem; }
-  #user-info { margin: 0; flex-direction: row; align-items: center; padding: 0.5rem; }
-  main { margin-left: 0; padding: 1.5rem 1rem; }
+/* =====================================================================
+   RESPONSIVO — menu lateral vira gaveta (off-canvas) no celular/tablet
+   ===================================================================== */
+@media (max-width: 991.98px) {
+  /* Barra superior fixa com botão hambúrguer */
+  .mobile-topbar {
+    position: sticky; top: 0; z-index: 1030;
+    display: flex; align-items: center; gap: 0.75rem;
+    height: var(--topbar-h); padding: 0 1rem;
+    background-color: var(--bs-dark); color: #fff;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .mobile-topbar .menu-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; border: 0; border-radius: 0.375rem;
+    background: transparent; color: #fff; font-size: 1.25rem; cursor: pointer;
+  }
+  .mobile-topbar .menu-toggle:hover,
+  .mobile-topbar .menu-toggle:focus-visible { background: rgba(255,255,255,0.1); }
+
+  /* Sidebar vira gaveta escondida à esquerda */
+  header {
+    width: min(280px, 85vw);
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: none;
+    visibility: hidden;
+  }
+  body.menu-open header {
+    transform: none;
+    visibility: visible;
+    box-shadow: 0 0 40px rgba(0,0,0,0.5);
+  }
+
+  /* Fundo escurecido atrás da gaveta */
+  .sb-backdrop {
+    display: block; position: fixed; inset: 0; z-index: 1035;
+    background: rgba(0,0,0,0.5);
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.28s ease, visibility 0.28s ease;
+  }
+  body.menu-open .sb-backdrop { opacity: 1; visibility: visible; }
+  body.menu-open { overflow: hidden; }
+
+  /* Conteúdo ocupa toda a largura */
+  main { margin-left: 0; padding: 1.25rem 1rem; min-height: calc(100vh - var(--topbar-h)); }
+
+  /* Documento mais compacto no celular */
+  .doc-wrapper { padding: 1.25rem 1rem; }
+  .doc-header { grid-template-columns: 1fr; }
+  .doc-header .logo-area { border-right: 0; border-bottom: 2px solid var(--doc-header); }
+  .doc-header .meta-area { border-left: 0; border-top: 2px solid var(--doc-header); }
+  .doc-body { grid-template-columns: 1fr; }
+  .doc-footer { flex-direction: column; gap: 0.25rem; }
+
+  #toast-container { left: 1rem; right: 1rem; bottom: 1rem; }
+  .toast-custom { min-width: 0; }
 }
 
 @media print {
   body { background: #fff !important; }
-  header, .btn, .no-print, #toast-container { display: none !important; }
+  header, .mobile-topbar, .sb-backdrop, .btn, .no-print, #toast-container { display: none !important; }
   main { margin: 0; padding: 0; }
   .doc-wrapper { padding: 0; border: 0; border-radius: 0; box-shadow: none; max-width: 100%;}
+  .doc-header { grid-template-columns: 160px 1fr 240px; }
+  .doc-body { grid-template-columns: 1fr 1fr; }
   .print-only { display: block; }
   .screen-only { display: none; }
   @page { margin: 15mm; size: A4 portrait; }
